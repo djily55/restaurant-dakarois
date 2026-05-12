@@ -1,0 +1,58 @@
+import type { MenuItem } from "../types"
+
+export const mockMenu: MenuItem[] = [
+  {
+    id: 1,
+    nom: "Thiéboudienne",
+    description: "Le plat national sénégalais, riz au poisson et légumes",
+    prix: 3500,
+    categorie: "Plat principal",
+    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
+    disponible: true,
+  },
+  {
+    id: 2,
+    nom: "Yassa Poulet",
+    description: "Poulet mariné aux oignons et citron, riz blanc",
+    prix: 3000,
+    categorie: "Plat principal",
+    image: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445",
+    disponible: true,
+  },
+  {
+    id: 3,
+    nom: "Mafé Boeuf",
+    description: "Boeuf mijoté en sauce arachide, riz ou fonio",
+    prix: 3200,
+    categorie: "Plat principal",
+    image: "https://images.unsplash.com/photo-1574484284002-952d92456975",
+    disponible: true,
+  },
+  {
+    id: 4,
+    nom: "Salade Niçoise",
+    description: "Salade fraîche, thon, olives, tomates",
+    prix: 1800,
+    categorie: "Entrée",
+    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd",
+    disponible: true,
+  },
+  {
+    id: 5,
+    nom: "Jus de Bissap",
+    description: "Jus d'hibiscus frais, sucré à la menthe",
+    prix: 800,
+    categorie: "Boisson",
+    image: "https://images.unsplash.com/photo-1544145945-f90425340c7e",
+    disponible: true,
+  },
+  {
+    id: 6,
+    nom: "Fondant Chocolat",
+    description: "Fondant au chocolat noir, cœur coulant",
+    prix: 1500,
+    categorie: "Dessert",
+    image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c",
+    disponible: false,
+  },
+]
