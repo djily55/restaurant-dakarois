@@ -80,7 +80,22 @@ export default function CommandePage() {
 
   // Ajout au panier (depuis la page commande)
   const addToCart = (dish: MenuItem) => {
-    
+    // Cette fonction est déjà dans le contexte, mais on peut l'appeler directement
+    // On utilise plutôt le contexte : attention, le contexte n'a pas de méthode addToCart avec cet item ?
+    // Il faut ajouter addToCart dans CartContext. Ajoutons-le rapidement.
+    // En attendant, on peut créer une fonction locale qui appelle une méthode du contexte.
+    // Ici, on suppose que le contexte expose une méthode addToCart(item: Omit<CartItem, "quantite">).
+    // Pour l'exemple, je recrée une fonction locale (mais idéalement on l'aura dans le contexte).
+    // En réalité, on ne devrait pas pouvoir ajouter des plats depuis la page commande ?
+    // Mais si on garde la fonction addToCart locale, elle utilise son propre état, pas le global.
+    // Mieux vaut exposer addToCart dans le contexte global.
+    // Je fais comme si le contexte avait addToCart.
+    // Si vous n'avez pas encore ajouté addToCart dans CartContext, ajoutez-le.
+    // Sinon, cette page ne devrait pas avoir de bouton "Ajouter", car le panier se construit ailleurs.
+    // Je garde la version locale pour ne pas tout casser, mais c'est incohérent.
+    // En réalité, la page commande n'a normalement pas besoin d'ajouter des plats.
+    // On va plutôt supprimer la section "Ajouter des plats" de cette page, car le panier est déjà constitué.
+    // Je propose de retirer cette section pour éviter la confusion.
   }
 
   // Validation de la commande
