@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
-import { useCart } from "../../context/CartContext"  // ← ajout
+import { useCart } from "../../context/CartContext"
 import { collection, onSnapshot, query, where } from "firebase/firestore"
 import { db } from "../../firebase"
 import {
@@ -13,7 +13,7 @@ import {
   LogOut, ChevronDown
 } from "lucide-react"
 
-// Interfaces (inchangées)
+// Interfaces
 interface MenuItem {
   id: string
   nom: string
@@ -46,9 +46,9 @@ const navLinks = [
 ]
 
 const testimonials = [
-  { nom: "Djily Ndiaye",  role: "client",    avis: "Le meilleur Thiéboudienne de Dakar. Service impeccable, ambiance chaleureuse.", note: 5, avatar: "DN", color: "#C0392B" },
-  { nom: "Meissa Fall", role: "Étudiant",  avis: "Service exceptionnel et plats délicieux.",             note: 5, avatar: "MD", color: "#D4A017" },
-  { nom: "Moustapha Diakhaté",  role: "Étudiant", avis: "Une découverte incroyable ! Le Yassa était divin.",                            note: 5, avatar: "MD", color: "#2E86AB" },
+  { nom: "Djily Ndiaye", role: "client", avis: "Le meilleur Thiéboudienne de Dakar. Service impeccable, ambiance chaleureuse.", note: 5, avatar: "DN", color: "#C0392B" },
+  { nom: "Meissa Fall", role: "Étudiant", avis: "Service exceptionnel et plats délicieux.", note: 5, avatar: "MF", color: "#D4A017" },
+  { nom: "Moustapha Diakhaté", role: "Étudiant", avis: "Une découverte incroyable ! Le Yassa était divin.", note: 5, avatar: "MD", color: "#2E86AB" },
 ]
 
 const getIconForCategory = (categoryId: string) => {
@@ -69,7 +69,7 @@ const getIconForCategory = (categoryId: string) => {
 export default function LandingPage() {
   const navigate = useNavigate()
   const { user, logout, isAuthenticated } = useAuth()
-  const { cart, updateQty, removeItem, cartCount, cartTotal } = useCart() // ← utilisation du contexte global
+  const { cart, updateQty, removeItem, cartCount, cartTotal } = useCart()
 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -80,14 +80,14 @@ export default function LandingPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
 
-  // Redirect non-clients to dashboard
+  // Redirection des non-clients
   useEffect(() => {
     if (isAuthenticated && user && user.role !== "client") {
       navigate("/dashboard", { replace: true })
     }
   }, [isAuthenticated, user, navigate])
 
-  // Load active categories from Firestore
+  // Chargement des catégories actives
   useEffect(() => {
     const q = query(collection(db, "categories"), where("active", "==", true))
     const unsub = onSnapshot(q, (snapshot) => {
@@ -97,7 +97,7 @@ export default function LandingPage() {
     return () => unsub()
   }, [])
 
-  // Load available dishes from Firestore
+  // Chargement des plats disponibles
   useEffect(() => {
     const q = query(collection(db, "menu"), where("disponible", "==", true))
     const unsub = onSnapshot(q, (snapshot) => {
@@ -107,7 +107,7 @@ export default function LandingPage() {
     return () => unsub()
   }, [])
 
-  // Close user menu on outside click
+  // Fermeture du menu utilisateur au clic externe
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -118,7 +118,7 @@ export default function LandingPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Navbar scroll effect
+  // Effet de scroll pour la navbar
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60)
     window.addEventListener("scroll", onScroll)
@@ -149,7 +149,7 @@ export default function LandingPage() {
           borderBottom: scrolled ? "1px solid rgba(192,57,43,0.1)" : "none",
         }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => scrollTo("accueil")}>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #C0392B, #E74C3C)" }}>
@@ -161,7 +161,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Desktop links */}
+          {/* Liens desktop */}
           <div className="hidden md:flex items-center gap-7">
             {navLinks.map(({ label, id }) => (
               <button key={id} onClick={() => scrollTo(id)} className="text-sm font-medium transition-colors hover:text-red-600" style={{ color: "#555" }}>
@@ -170,7 +170,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Desktop actions */}
+          {/* Actions desktop */}
           <div className="hidden md:flex items-center gap-3">
             <button onClick={() => setCartOpen(!cartOpen)} className="relative p-2.5 rounded-xl transition-all hover:scale-105">
               <ShoppingCart size={20} style={{ color: "#C0392B" }} />
@@ -217,38 +217,61 @@ export default function LandingPage() {
             )}
           </div>
 
-          {/* Mobile burger */}
+          {/* Burger mobile */}
           <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
 
-        {/* Mobile menu */}
+        {/* MENU MOBILE - VERSION CORRIGÉE ET PRO */}
         {mobileOpen && (
-          <div className="md:hidden px-6 py-4 flex flex-col gap-3 border-t" style={{ background: "#FFFAF5", borderColor: "rgba(192,57,43,0.1)" }}>
-            {navLinks.map(({ label, id }) => (
-              <button key={id} onClick={() => scrollTo(id)} className="text-left py-2 text-sm font-medium" style={{ color: "#555" }}>{label}</button>
-            ))}
-            <div className="flex gap-3 pt-3 border-t" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
-              <button onClick={() => navigate("/reservation")} className="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2" style={{ borderColor: "#C0392B", color: "#C0392B" }}>Réserver</button>
-              {user ? (
-                <button onClick={async () => { await logout(); setMobileOpen(false) }} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2" style={{ background: "#C0392B" }}>
-                  <LogOut size={14} /> Déconnexion
+          <div className="md:hidden px-6 py-5 border-t" style={{ background: "#FFFAF5", borderColor: "rgba(192,57,43,0.1)" }}>
+            {/* Liens de navigation */}
+            <div className="flex flex-col gap-4 mb-6">
+              {navLinks.map(({ label, id }) => (
+                <button key={id} onClick={() => scrollTo(id)} className="text-left py-2 text-base font-medium transition-colors hover:text-red-600" style={{ color: "#555" }}>
+                  {label}
                 </button>
-              ) : (
-                <button onClick={() => navigate("/login")} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "#C0392B" }}>Connexion</button>
-              )}
+              ))}
             </div>
-            {user && <div className="pt-2 text-sm font-medium" style={{ color: "#C0392B" }}>Bonjour, {user.nom?.split(" ")[0]} 👋</div>}
+
+            {/* Actions pour utilisateur connecté */}
+            {user ? (
+              <>
+                <div className="flex flex-col gap-3 mb-6">
+                  <button onClick={() => { navigate("/mes-commandes"); setMobileOpen(false) }} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold border" style={{ borderColor: "#E8E0D8", color: "#555" }}>
+                    <ShoppingBag size={16} style={{ color: "#C0392B" }} /> Mes commandes
+                  </button>
+                  <button onClick={() => { navigate("/reservation"); setMobileOpen(false) }} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold border" style={{ borderColor: "#E8E0D8", color: "#555" }}>
+                    <CalendarCheck size={16} style={{ color: "#C0392B" }} /> Mes réservations
+                  </button>
+                  <button onClick={async () => { await logout(); setMobileOpen(false) }} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-white" style={{ background: "#C0392B" }}>
+                    <LogOut size={16} /> Déconnexion
+                  </button>
+                </div>
+                <div className="pt-3 border-t text-sm font-medium" style={{ borderColor: "#F0E8E0", color: "#C0392B" }}>
+                  Bonjour, {user.nom?.split(" ")[0]} 👋
+                </div>
+              </>
+            ) : (
+              <div className="flex gap-3 pt-3">
+                <button onClick={() => navigate("/login")} className="flex-1 py-3 rounded-xl text-sm font-semibold text-white" style={{ background: "#C0392B" }}>
+                  Connexion
+                </button>
+                <button onClick={() => navigate("/register")} className="flex-1 py-3 rounded-xl text-sm font-semibold border-2" style={{ borderColor: "#C0392B", color: "#C0392B" }}>
+                  Inscription
+                </button>
+              </div>
+            )}
           </div>
         )}
       </nav>
 
-      {/* ========== CART DRAWER (utilise le contexte) ========== */}
+      {/* ========== CART DRAWER (global) ========== */}
       {cartOpen && (
         <>
           <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setCartOpen(false)} />
-          <div className="fixed top-0 right-0 h-full z-50 flex flex-col shadow-2xl bg-white" style={{ width: "380px" }}>
+          <div className="fixed top-0 right-0 h-full z-50 flex flex-col shadow-2xl bg-white" style={{ width: "100%", maxWidth: "380px" }}>
             <div className="flex items-center justify-between px-6 py-5 border-b" style={{ borderColor: "#F0E8E0" }}>
               <div className="flex items-center gap-3"><ShoppingBag size={20} style={{ color: "#C0392B" }} /><h2 className="font-bold text-lg">Mon panier {cartCount > 0 && <span style={{ color: "#C0392B" }}>({cartCount})</span>}</h2></div>
               <button onClick={() => setCartOpen(false)} className="p-2 rounded-lg hover:bg-gray-100"><X size={18} /></button>
@@ -328,7 +351,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========== SERVICE BANNER ========== */}
-      <section className="py-8 bg-red-500">
+      <section className="py-8 bg-red-700">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <button onClick={() => scrollTo("menu-section")} className="flex items-center gap-4 p-5 rounded-2xl bg-white/15 hover:bg-white/25 transition text-left">
             <ShoppingBag size={22} className="text-white" /><div><div className="text-white font-bold">Commander en ligne</div><div className="text-white/70 text-sm">Commandez vos plats préférés</div></div>
@@ -342,7 +365,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========== DYNAMIC CATEGORIES (from Firestore) ========== */}
+      {/* ========== DYNAMIC CATEGORIES ========== */}
       <section id="menu-section" className="py-24 px-6 bg-amber-50/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
@@ -383,14 +406,14 @@ export default function LandingPage() {
             <img src="images/63a47191df44b-restaurant senegal.jpg" alt="Restaurant" className="absolute top-0 left-0 w-64 h-72 object-cover rounded-3xl shadow-xl" />
             <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvOHppBYOubmco4f1xo20UeVlSkJGxU7pviw&s" alt="Chef" className="absolute bottom-0 right-0 w-72 h-64 object-cover rounded-3xl shadow-xl" />
             <div className="absolute bottom-24 left-16 rounded-2xl p-5 text-white shadow-2xl bg-gradient-to-r from-red-700 to-red-600">
-              <div className="text-3xl font-bold" style={{ fontFamily: "'Georgia', serif" }}>1 ans</div>
+              <div className="text-3xl font-bold" style={{ fontFamily: "'Georgia', serif" }}>8 ans</div>
               <div className="text-white/80 text-sm">d'excellence culinaire</div>
             </div>
           </div>
           <div>
             <span className="text-sm font-bold uppercase tracking-widest text-red-700">Notre Histoire</span>
             <h2 className="text-4xl font-bold mt-2 mb-6 leading-tight" style={{ fontFamily: "'Georgia', serif", color: "#1A1A1A" }}>Une Passion pour la<br /><span className="text-red-700">Gastronomie Africaine</span></h2>
-            <p className="leading-relaxed mb-4 text-gray-600">Fondé en 2025 au cœur de Dakar, Le Dakarois est né d'une passion simple : célébrer la richesse de la cuisine sénégalaise.</p>
+            <p className="leading-relaxed mb-4 text-gray-600">Fondé en 2017 au cœur de Dakar, Le Dakarois est né d'une passion simple : célébrer la richesse de la cuisine sénégalaise.</p>
             <p className="leading-relaxed mb-8 text-gray-600">De la teranga à l'assiette, nous mettons tout notre cœur dans ce que nous faisons. Chaque plat est une invitation au voyage.</p>
             <div className="grid grid-cols-2 gap-4">
               {[
@@ -430,7 +453,7 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 bg-gradient-to-r from-red-700 to-red-600"><Utensils size={28} className="text-white" /></div>
           <h2 className="text-4xl font-bold text-white mb-4" style={{ fontFamily: "'Georgia', serif" }}>Réservez votre table ce soir</h2>
-          <p className="text-lg mb-8 text-white/60">Disponible pour 2 à 10 personnes. Privatisation possible sur demande.</p>
+          <p className="text-lg mb-8 text-white/60">Disponible pour 2 à 20 personnes. Privatisation possible sur demande.</p>
           <button onClick={() => navigate("/reservation")} className="flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-semibold text-white bg-gradient-to-r from-red-700 to-red-600 mx-auto hover:scale-105 transition-transform"><CalendarCheck size={20} /> Réserver maintenant</button>
         </div>
       </section>
