@@ -53,7 +53,7 @@ export default function Register() {
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('public/images/63a47191df44b-restaurant senegal.jpg')" }}
+          style={{ backgroundImage: "url('/images/63a47191df44b-restaurant senegal.jpg')" }}
         />
         <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(255,250,245,0.92) 0%, rgba(192,57,43,0.15) 100%)" }} />
         <div className="relative z-10 flex items-center gap-3">
