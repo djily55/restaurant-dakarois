@@ -1,16 +1,16 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   TrendingUp, ShoppingBag, CalendarCheck,
-  ArrowRight, ArrowUp, ArrowDown, Clock, CheckCircle, ChefHat,
-  UserPlus, UserCheck, Award, RefreshCw
+  ArrowRight, Clock, CheckCircle, ChefHat,
+  Award, RefreshCw
 } from "lucide-react"
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore"
 import { db } from "../../firebase"
 
 type Periode = "jour" | "semaine" | "mois"
 
-// Types alignés avec Firestore
+// Types Firestore
 interface OrderItem {
   nom: string
   quantite: number
@@ -27,7 +27,7 @@ interface Order {
   items: OrderItem[]
   total: number
   statut: string
-  createdAt: string // stocké en ISO après conversion
+  createdAt: string
   userId?: string
 }
 
@@ -60,7 +60,7 @@ const statusCfg: Record<string, { color: string; bg: string; icon: React.Element
   "Livré": { color: "#95A5A6", bg: "rgba(149,165,166,0.1)", icon: CheckCircle },
 }
 
-// Donut Chart
+// Donut Chart (inchangé mais responsive)
 const DonutChart = ({ data }: { data: { labels: string[]; data: number[]; colors: string[] } }) => {
   const radius = 70
   const circumference = 2 * Math.PI * radius
@@ -119,24 +119,24 @@ const DonutChart = ({ data }: { data: { labels: string[]; data: number[]; colors
   )
 }
 
-// Bar Chart vertical
+// Bar Chart vertical responsive
 const VerticalBarChart = ({ data }: { data: { labels: string[]; data: number[]; colors: string[] } }) => {
   const maxValue = Math.max(...data.data, 1)
   return (
-    <div className="h-56">
-      <div className="flex h-48 items-end justify-around gap-4">
+    <div className="h-48 sm:h-56">
+      <div className="flex h-40 sm:h-48 items-end justify-around gap-2 sm:gap-4">
         {data.data.map((value, index) => (
-          <div key={index} className="flex flex-col items-center gap-2 flex-1">
+          <div key={index} className="flex flex-col items-center gap-1 sm:gap-2 flex-1">
             <div className="relative w-full group flex justify-center">
-              <div className="w-3/4 rounded-t-xl transition-all duration-500 cursor-pointer hover:opacity-80 relative"
-                style={{ height: `${Math.max((value / maxValue) * 170, 4)}px`, background: data.colors[index], minHeight: "4px" }}>
+              <div className="w-3/4 rounded-t-xl transition-all duration-500 cursor-pointer hover:opacity-80"
+                style={{ height: `${Math.max((value / maxValue) * 130, 4)}px`, background: data.colors[index], minHeight: "4px" }}>
                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                  {value} commande{value > 1 ? "s" : ""}
+                  {value} cmd
                 </div>
               </div>
             </div>
-            <div className="text-xs font-medium text-center" style={{ color: "#666" }}>{data.labels[index]}</div>
-            <div className="text-xs font-bold" style={{ color: data.colors[index] }}>{value}</div>
+            <div className="text-[10px] sm:text-xs font-medium text-center" style={{ color: "#666" }}>{data.labels[index]}</div>
+            <div className="text-[10px] sm:text-xs font-bold" style={{ color: data.colors[index] }}>{value}</div>
           </div>
         ))}
       </div>
@@ -144,10 +144,22 @@ const VerticalBarChart = ({ data }: { data: { labels: string[]; data: number[]; 
   )
 }
 
-// Graphique d'évolution – COURBE
+// Graphique d'évolution – COURBE (responsive)
 const EvolutionChart = ({ orders, periode }: { orders: Order[]; periode: Periode }) => {
   const now = new Date()
   const [hovered, setHovered] = useState<number | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [dimensions, setDimensions] = useState({ width: 600, height: 200 })
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const observer = new ResizeObserver(entries => {
+      const { width } = entries[0].contentRect
+      setDimensions({ width: Math.max(width, 300), height: Math.max(width * 0.35, 180) })
+    })
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   const getLabelsAndData = () => {
     if (periode === "jour") {
@@ -189,9 +201,9 @@ const EvolutionChart = ({ orders, periode }: { orders: Order[]; periode: Periode
   const maxVal = Math.max(...data, 1)
   const total = data.reduce((s, v) => s + v, 0)
 
-  const width = 600
-  const height = 200
-  const padding = { top: 20, bottom: 35, left: 50, right: 20 }
+  const width = dimensions.width
+  const height = dimensions.height
+  const padding = { top: 20, bottom: 35, left: 40, right: 15 }
   const graphWidth = width - padding.left - padding.right
   const graphHeight = height - padding.top - padding.bottom
 
@@ -214,8 +226,8 @@ const EvolutionChart = ({ orders, periode }: { orders: Order[]; periode: Periode
   }
 
   return (
-    <div>
-      <div className="relative w-full overflow-x-auto" style={{ minHeight: height }}>
+    <div ref={containerRef} className="w-full">
+      <div className="relative w-full" style={{ minHeight: height }}>
         <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
           {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
             const y = padding.top + graphHeight * (1 - ratio)
@@ -223,61 +235,48 @@ const EvolutionChart = ({ orders, periode }: { orders: Order[]; periode: Periode
             return (
               <g key={i}>
                 <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="#F0E8E0" strokeWidth="1" strokeDasharray="4" />
-                <text x={padding.left - 8} y={y + 3} textAnchor="end" fontSize="10" fill="#BBB">{formatValue(value)}</text>
+                <text x={padding.left - 8} y={y + 3} textAnchor="end" fontSize="9" fill="#BBB">{formatValue(value)}</text>
               </g>
             )
           })}
-          <path d={linePath} fill="none" stroke="#C0392B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={linePath} fill="none" stroke="#C0392B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           <path d={linePath + ` L ${points[points.length-1].x} ${padding.top + graphHeight} L ${points[0].x} ${padding.top + graphHeight} Z`} fill="rgba(192,57,43,0.05)" />
           {points.map((point, idx) => (
             <g key={idx}>
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={hovered === idx ? 6 : 4}
-                fill="white"
-                stroke="#C0392B"
-                strokeWidth="2"
-                style={{ cursor: "pointer", transition: "r 0.1s" }}
-                onMouseEnter={() => setHovered(idx)}
-                onMouseLeave={() => setHovered(null)}
-              />
+              <circle cx={point.x} cy={point.y} r={hovered === idx ? 5 : 3} fill="white" stroke="#C0392B" strokeWidth="1.5" 
+                onMouseEnter={() => setHovered(idx)} onMouseLeave={() => setHovered(null)} />
               {hovered === idx && (
                 <>
                   <line x1={point.x} y1={point.y} x2={point.x} y2={padding.top + graphHeight} stroke="#C0392B" strokeWidth="1" strokeDasharray="3" />
-                  <rect x={point.x - 40} y={point.y - 28} width="80" height="22" rx="4" fill="#1A1A1A" />
-                  <text x={point.x} y={point.y - 14} textAnchor="middle" fontSize="10" fill="white">
-                    {point.value.toLocaleString()} FCFA
-                  </text>
+                  <rect x={point.x - 35} y={point.y - 26} width="70" height="20" rx="4" fill="#1A1A1A" />
+                  <text x={point.x} y={point.y - 13} textAnchor="middle" fontSize="9" fill="white">{point.value.toLocaleString()} FCFA</text>
                 </>
               )}
             </g>
           ))}
           <line x1={padding.left} y1={padding.top + graphHeight} x2={width - padding.right} y2={padding.top + graphHeight} stroke="#E0D8D0" strokeWidth="1" />
           {points.map((point, idx) => (
-            <text key={idx} x={point.x} y={padding.top + graphHeight + 18} textAnchor="middle" fontSize="10" fill="#999">
-              {point.label}
-            </text>
+            <text key={idx} x={point.x} y={padding.top + graphHeight + 16} textAnchor="middle" fontSize="8" fill="#999">{point.label}</text>
           ))}
         </svg>
       </div>
-      <div className="flex justify-center gap-8 mt-4 pt-4 border-t" style={{ borderColor: "#F0E8E0" }}>
+      <div className="flex justify-center gap-4 sm:gap-8 mt-3 pt-3 border-t" style={{ borderColor: "#F0E8E0" }}>
         <div className="text-center">
-          <div className="text-xl font-bold" style={{ color: "#C0392B" }}>{total.toLocaleString()} FCFA</div>
-          <div className="text-xs" style={{ color: "#999" }}>CA {periode === "jour" ? "aujourd'hui" : periode === "semaine" ? "cette semaine" : "ce mois"}</div>
+          <div className="text-base sm:text-xl font-bold" style={{ color: "#C0392B" }}>{total.toLocaleString()} FCFA</div>
+          <div className="text-[10px] sm:text-xs" style={{ color: "#999" }}>CA {periode === "jour" ? "auj." : periode === "semaine" ? "sem." : "mois"}</div>
         </div>
         <div className="text-center">
-          <div className="text-xl font-bold" style={{ color: "#3498DB" }}>{orders.filter(o => o.statut === "Livré").length}</div>
-          <div className="text-xs" style={{ color: "#999" }}>Commandes livrées</div>
+          <div className="text-base sm:text-xl font-bold" style={{ color: "#3498DB" }}>{orders.filter(o => o.statut === "Livré").length}</div>
+          <div className="text-[10px] sm:text-xs" style={{ color: "#999" }}>Livrées</div>
         </div>
       </div>
     </div>
   )
 }
 
-// ------------------------------------------------------------------
-// COMPOSANT PRINCIPAL OVERVIEW (connecté à Firestore)
-// ------------------------------------------------------------------
+// ==================================================================
+// COMPOSANT PRINCIPAL OVERVIEW
+// ==================================================================
 export default function Overview() {
   const navigate = useNavigate()
   const [periode, setPeriode] = useState<Periode>("jour")
@@ -286,7 +285,7 @@ export default function Overview() {
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(new Date())
 
-  // Écoute en temps réel des commandes
+  // Écoute commandes
   useEffect(() => {
     const q = query(collection(db, "orders"), orderBy("createdAt", "desc"))
     const unsub = onSnapshot(q, (snapshot) => {
@@ -312,7 +311,7 @@ export default function Overview() {
     return () => unsub()
   }, [])
 
-  // Écoute en temps réel des réservations
+  // Écoute réservations
   useEffect(() => {
     const q = query(collection(db, "reservations"), orderBy("createdAt", "desc"))
     const unsub = onSnapshot(q, (snapshot) => {
@@ -337,7 +336,6 @@ export default function Overview() {
 
   const now = new Date()
 
-  // Filtrer commandes selon période
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
       const d = new Date(o.createdAt)
@@ -352,14 +350,12 @@ export default function Overview() {
     })
   }, [orders, periode, now])
 
-  // Stats réelles
   const ca = filteredOrders.reduce((s, o) => s + o.total, 0)
   const nbCommandes = filteredOrders.length
   const pendingOrders = orders.filter(o => o.statut === "En attente").length
   const pendingRes = reservations.filter(r => r.statut === "En attente").length
   const confirmedRes = reservations.filter(r => r.statut === "Confirmée").length
 
-  // Répartition par type
   const typeData = {
     labels: ["Sur place", "À emporter", "Livraison"],
     data: [
@@ -370,7 +366,6 @@ export default function Overview() {
     colors: ["#3498DB", "#E67E22", "#27AE60"]
   }
 
-  // Statuts en cours (toutes commandes)
   const statusData = {
     labels: ["En attente", "En cuisine", "Prêt", "Livré"],
     data: [
@@ -382,7 +377,6 @@ export default function Overview() {
     colors: ["#E67E22", "#3498DB", "#9B59B6", "#27AE60"]
   }
 
-  // Top plats réels
   const topDishes = useMemo(() => {
     const counts: Record<string, { commandes: number; revenus: number }> = {}
     filteredOrders.forEach(o => {
@@ -422,34 +416,34 @@ export default function Overview() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ fontFamily: "'Georgia', serif", color: "#1A1A1A" }}>Vue d'ensemble</h1>
-          <p className="text-sm mt-1" style={{ color: "#999" }}>Données en temps réel · {lastRefresh.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</p>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Georgia', serif", color: "#1A1A1A" }}>Vue d'ensemble</h1>
+          <p className="text-xs sm:text-sm mt-0.5" style={{ color: "#999" }}>Données en temps réel · {lastRefresh.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#27AE60" }} />
-            <span className="text-xs" style={{ color: "#27AE60" }}>En direct</span>
+        <div className="flex items-center justify-between sm:justify-end gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#27AE60" }} />
+            <span className="text-[10px] sm:text-xs" style={{ color: "#27AE60" }}>En direct</span>
           </div>
-          <button onClick={() => setLastRefresh(new Date())} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium hover:bg-red-50" style={{ color: "#C0392B" }}>
-            <RefreshCw size={13} /> Actualiser
+          <button onClick={() => setLastRefresh(new Date())} className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-red-50" style={{ color: "#C0392B" }}>
+            <RefreshCw size={12} /> <span className="hidden sm:inline">Actualiser</span>
           </button>
           <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "#F0E8E0" }}>
             {(["jour", "semaine", "mois"] as const).map(p => (
               <button key={p} onClick={() => setPeriode(p)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                className="px-2 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-semibold transition-all"
                 style={periode === p ? { background: "white", color: "#C0392B", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" } : { color: "#999" }}>
-                {p === "jour" ? "Aujourd'hui" : p === "semaine" ? "Semaine" : "Mois"}
+                {p === "jour" ? "Jour" : p === "semaine" ? "Sem." : "Mois"}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Alertes temps réel */}
+      {/* Alertes */}
       {(pendingOrders > 0 || pendingRes > 0) && (
         <div className="flex flex-wrap gap-3">
           {pendingOrders > 0 && (
@@ -469,52 +463,52 @@ export default function Overview() {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Stats Cards - grille responsive */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: "Chiffre d'affaires", value: `${ca.toLocaleString()}`, unit: "FCFA", icon: TrendingUp, color: "#C0392B", bg: "rgba(192,57,43,0.08)", sub: `${nbCommandes} commandes` },
           { label: "Commandes actives", value: `${orders.filter(o => o.statut !== "Livré").length}`, unit: "en cours", icon: ShoppingBag, color: "#3498DB", bg: "rgba(52,152,219,0.08)", sub: `${pendingOrders} en attente` },
           { label: "Réservations", value: `${reservations.length}`, unit: "total", icon: CalendarCheck, color: "#9B59B6", bg: "rgba(155,89,182,0.08)", sub: `${confirmedRes} confirmées` },
-          { label: "À traiter", value: `${pendingOrders + pendingRes}`, unit: "actions requises", icon: UserCheck, color: pendingOrders + pendingRes > 0 ? "#E67E22" : "#27AE60", bg: pendingOrders + pendingRes > 0 ? "rgba(230,126,34,0.08)" : "rgba(39,174,96,0.08)", sub: pendingOrders + pendingRes === 0 ? "Tout est à jour ✓" : "Action requise !" },
+          { label: "À traiter", value: `${pendingOrders + pendingRes}`, unit: "actions requises", icon: CheckCircle, color: pendingOrders + pendingRes > 0 ? "#E67E22" : "#27AE60", bg: pendingOrders + pendingRes > 0 ? "rgba(230,126,34,0.08)" : "rgba(39,174,96,0.08)", sub: pendingOrders + pendingRes === 0 ? "Tout est à jour ✓" : "Action requise !" },
         ].map(({ label, value, unit, icon: Icon, color, bg, sub }) => (
-          <div key={label} className="p-5 rounded-2xl border transition-all hover:-translate-y-0.5 hover:shadow-md"
+          <div key={label} className="p-4 sm:p-5 rounded-2xl border transition-all hover:-translate-y-0.5 hover:shadow-md"
             style={{ background: "white", border: "1px solid #F0E8E0" }}>
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: bg }}>
-                <Icon size={18} style={{ color }} />
+            <div className="flex items-start justify-between mb-3 sm:mb-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center" style={{ background: bg }}>
+                <Icon size={16} style={{ color }} />
               </div>
             </div>
-            <div className="text-2xl font-bold mb-0.5" style={{ color: "#1A1A1A", fontFamily: "'Georgia', serif" }}>{value}</div>
-            <div className="text-xs" style={{ color: "#AAA" }}>{unit}</div>
-            <div className="text-xs font-medium mt-1" style={{ color: "#888" }}>{label}</div>
-            <div className="text-xs mt-1" style={{ color }}>{sub}</div>
+            <div className="text-xl sm:text-2xl font-bold mb-0.5" style={{ color: "#1A1A1A", fontFamily: "'Georgia', serif" }}>{value}</div>
+            <div className="text-[10px] sm:text-xs" style={{ color: "#AAA" }}>{unit}</div>
+            <div className="text-[10px] sm:text-xs font-medium mt-1" style={{ color: "#888" }}>{label}</div>
+            <div className="text-[10px] sm:text-xs mt-1" style={{ color }}>{sub}</div>
           </div>
         ))}
       </div>
 
       {/* Graphique évolution CA */}
       <div className="rounded-2xl border overflow-hidden" style={{ background: "white", border: "1px solid #F0E8E0" }}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
-          <h2 className="font-bold" style={{ color: "#1A1A1A" }}>Évolution du chiffre d'affaires</h2>
-          <span className="text-xs px-3 py-1 rounded-full" style={{ background: "rgba(39,174,96,0.1)", color: "#27AE60" }}>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
+          <h2 className="font-bold text-sm sm:text-base" style={{ color: "#1A1A1A" }}>Évolution du chiffre d'affaires</h2>
+          <span className="text-[10px] sm:text-xs px-3 py-1 rounded-full" style={{ background: "rgba(39,174,96,0.1)", color: "#27AE60" }}>
             Données réelles
           </span>
         </div>
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           <EvolutionChart orders={filteredOrders} periode={periode} />
         </div>
       </div>
 
-      {/* Répartition + Statuts */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      {/* Répartition + Statuts (2 colonnes sur desktop, 1 sur mobile) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div className="rounded-2xl border overflow-hidden" style={{ background: "white", border: "1px solid #F0E8E0" }}>
-          <div className="px-6 py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
-            <h2 className="font-bold flex items-center gap-2" style={{ color: "#1A1A1A" }}>
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
+            <h2 className="font-bold flex items-center gap-2 text-sm sm:text-base" style={{ color: "#1A1A1A" }}>
               <ShoppingBag size={18} style={{ color: "#C0392B" }} /> Répartition des commandes
             </h2>
-            <p className="text-xs mt-1" style={{ color: "#999" }}>Par type de service (données réelles)</p>
+            <p className="text-[10px] sm:text-xs mt-1" style={{ color: "#999" }}>Par type de service</p>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {filteredOrders.length === 0 ? (
               <div className="text-center py-8" style={{ color: "#DDD" }}>
                 <ShoppingBag size={32} className="mx-auto mb-2" />
@@ -525,25 +519,25 @@ export default function Overview() {
         </div>
 
         <div className="rounded-2xl border overflow-hidden" style={{ background: "white", border: "1px solid #F0E8E0" }}>
-          <div className="px-6 py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
-            <h2 className="font-bold flex items-center gap-2" style={{ color: "#1A1A1A" }}>
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
+            <h2 className="font-bold flex items-center gap-2 text-sm sm:text-base" style={{ color: "#1A1A1A" }}>
               <Clock size={18} style={{ color: "#C0392B" }} /> Statuts en cours
             </h2>
-            <p className="text-xs mt-1" style={{ color: "#999" }}>Toutes les commandes</p>
+            <p className="text-[10px] sm:text-xs mt-1" style={{ color: "#999" }}>Toutes les commandes</p>
           </div>
-          <div className="p-6 flex justify-center">
+          <div className="p-4 sm:p-6 flex justify-center">
             <DonutChart data={statusData} />
           </div>
         </div>
       </div>
 
       {/* Commandes récentes + Réservations récentes */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-2 rounded-2xl border overflow-hidden" style={{ background: "white", border: "1px solid #F0E8E0" }}>
-          <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
-            <h2 className="font-bold" style={{ color: "#1A1A1A" }}>Commandes récentes</h2>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
+            <h2 className="font-bold text-sm sm:text-base" style={{ color: "#1A1A1A" }}>Commandes récentes</h2>
             <button onClick={() => navigate("/dashboard/orders")}
-              className="flex items-center gap-1.5 text-sm font-medium hover:text-red-600" style={{ color: "#C0392B" }}>
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-medium hover:text-red-600" style={{ color: "#C0392B" }}>
               Voir tout <ArrowRight size={14} />
             </button>
           </div>
@@ -558,27 +552,27 @@ export default function Overview() {
                 const cfg = statusCfg[order.statut] || statusCfg["En attente"]
                 const Icon = cfg.icon
                 return (
-                  <div key={order.id} className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-xs"
+                  <div key={order.id} className="px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-[10px] sm:text-xs"
                         style={{ background: "rgba(192,57,43,0.08)", color: "#C0392B" }}>
                         #{order.id.slice(-3)}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm" style={{ color: "#1A1A1A" }}>{order.client}</span>
-                          <span className="text-xs" style={{ color: "#BBB" }}>· {formatTime(order.createdAt)}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-xs sm:text-sm" style={{ color: "#1A1A1A" }}>{order.client}</span>
+                          <span className="text-[10px] sm:text-xs" style={{ color: "#BBB" }}>· {formatTime(order.createdAt)}</span>
                         </div>
-                        <div className="text-xs truncate" style={{ color: "#AAA" }}>
+                        <div className="text-[10px] sm:text-xs truncate max-w-[150px] sm:max-w-none" style={{ color: "#AAA" }}>
                           {order.items.map(i => `${i.quantite}x ${i.nom}`).join(", ")}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="font-bold text-sm" style={{ color: "#C0392B" }}>{order.total.toLocaleString()} F</span>
-                      <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium"
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                      <span className="font-bold text-xs sm:text-sm" style={{ color: "#C0392B" }}>{order.total.toLocaleString()} F</span>
+                      <span className="flex items-center gap-0.5 text-[10px] sm:text-xs px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full font-medium"
                         style={{ background: cfg.bg, color: cfg.color }}>
-                        <Icon size={10} /> {order.statut}
+                        <Icon size={8} /> <span className="hidden xs:inline">{order.statut}</span>
                       </span>
                     </div>
                   </div>
@@ -589,9 +583,9 @@ export default function Overview() {
         </div>
 
         <div className="rounded-2xl border overflow-hidden" style={{ background: "white", border: "1px solid #F0E8E0" }}>
-          <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
-            <h2 className="font-bold" style={{ color: "#1A1A1A" }}>Réservations récentes</h2>
-            <button onClick={() => navigate("/dashboard/reservations")} className="text-sm font-medium" style={{ color: "#C0392B" }}>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
+            <h2 className="font-bold text-sm sm:text-base" style={{ color: "#1A1A1A" }}>Réservations récentes</h2>
+            <button onClick={() => navigate("/dashboard/reservations")} className="text-xs sm:text-sm font-medium" style={{ color: "#C0392B" }}>
               Voir tout
             </button>
           </div>
@@ -603,10 +597,10 @@ export default function Overview() {
           ) : (
             <div className="divide-y" style={{ borderColor: "#F8F3EF" }}>
               {recentReservations.map((r, i) => (
-                <div key={i} className="px-5 py-4">
+                <div key={i} className="px-4 sm:px-5 py-3 sm:py-4">
                   <div className="flex items-start justify-between mb-1">
-                    <div className="font-semibold text-sm" style={{ color: "#1A1A1A" }}>{r.nom}</div>
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    <div className="font-semibold text-xs sm:text-sm" style={{ color: "#1A1A1A" }}>{r.nom}</div>
+                    <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-medium"
                       style={r.statut === "Confirmée"
                         ? { background: "rgba(39,174,96,0.1)", color: "#27AE60" }
                         : r.statut === "Annulée"
@@ -615,13 +609,13 @@ export default function Overview() {
                       {r.statut}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs" style={{ color: "#AAA" }}>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs" style={{ color: "#AAA" }}>
                     <span>📅 {r.date}</span>
                     <span>🕐 {r.heure}</span>
                     <span>👥 {r.personnes} pers.</span>
                   </div>
                   {r.occasion && r.occasion !== "Aucune" && (
-                    <div className="text-xs mt-1" style={{ color: "#C0392B" }}>{r.occasion}</div>
+                    <div className="text-[10px] sm:text-xs mt-1" style={{ color: "#C0392B" }}>{r.occasion}</div>
                   )}
                 </div>
               ))}
@@ -632,15 +626,15 @@ export default function Overview() {
 
       {/* Top plats */}
       <div className="rounded-2xl border overflow-hidden" style={{ background: "white", border: "1px solid #F0E8E0" }}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
-          <h2 className="font-bold flex items-center gap-2" style={{ color: "#1A1A1A" }}>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
+          <h2 className="font-bold flex items-center gap-2 text-sm sm:text-base" style={{ color: "#1A1A1A" }}>
             <Award size={18} style={{ color: "#C0392B" }} /> Plats les plus commandés
           </h2>
-          <button onClick={() => navigate("/dashboard/menu")} className="flex items-center gap-1.5 text-sm font-medium" style={{ color: "#C0392B" }}>
+          <button onClick={() => navigate("/dashboard/menu")} className="flex items-center gap-1.5 text-xs sm:text-sm font-medium" style={{ color: "#C0392B" }}>
             Gérer le menu <ArrowRight size={14} />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {topDishes.length === 0 ? (
             <div className="text-center py-8" style={{ color: "#DDD" }}>
               <Award size={32} className="mx-auto mb-2" />
@@ -651,19 +645,19 @@ export default function Overview() {
               {topDishes.map(({ nom, commandes, revenus, pct }, i) => (
                 <div key={nom}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-bold text-white flex-shrink-0"
                         style={{ background: i === 0 ? "#D4A017" : i === 1 ? "#95A5A6" : i === 2 ? "#CD7F32" : "#DDD" }}>
                         {i + 1}
                       </span>
-                      <span className="font-medium text-sm" style={{ color: "#1A1A1A" }}>{nom}</span>
+                      <span className="font-medium text-xs sm:text-sm" style={{ color: "#1A1A1A" }}>{nom}</span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
                       <span style={{ color: "#AAA" }}>{commandes} cmd</span>
                       <span className="font-bold" style={{ color: "#C0392B" }}>{revenus.toLocaleString()} F</span>
                     </div>
                   </div>
-                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "#F0E8E0" }}>
+                  <div className="h-1.5 sm:h-2 rounded-full overflow-hidden" style={{ background: "#F0E8E0" }}>
                     <div className="h-full rounded-full transition-all duration-700"
                       style={{ width: `${pct}%`, background: "linear-gradient(to right, #C0392B, #E74C3C)" }} />
                   </div>
