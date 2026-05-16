@@ -47,7 +47,7 @@ export default function ResetPassword() {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-12">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600891964092-4316c288032e?w=900&q=80')" }}
+          style={{ backgroundImage: "url('public/images/63a47191df44b-restaurant senegal.jpg')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#0D0D0D]/90 via-[#0D0D0D]/60 to-[#C0392B]/20" />
         <div className="relative z-10 flex items-center gap-3">

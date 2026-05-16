@@ -310,7 +310,7 @@ export default function LandingPage() {
 
       {/* ========== HERO SECTION ========== */}
       <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('images/63a47191df44b-restaurant senegal.jpg')" }} />
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('public/images/63a47191df44b-restaurant senegal.jpg')" }} />
         <div className="absolute inset-0" style={{ background: "linear-gradient(105deg, rgba(255,250,245,0.97) 45%, rgba(255,250,245,0.5) 70%, rgba(255,250,245,0.1) 100%)" }} />
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full pt-24 pb-16">
           <div className="max-w-2xl">
@@ -403,7 +403,7 @@ export default function LandingPage() {
       <section id="apropos" className="py-24 px-6 bg-white">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
           <div className="relative h-[480px] hidden md:block">
-            <img src="images/63a47191df44b-restaurant senegal.jpg" alt="Restaurant" className="absolute top-0 left-0 w-64 h-72 object-cover rounded-3xl shadow-xl" />
+            <img src="public/images/63a47191df44b-restaurant senegal.jpg" alt="Restaurant" className="absolute top-0 left-0 w-64 h-72 object-cover rounded-3xl shadow-xl" />
             <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvOHppBYOubmco4f1xo20UeVlSkJGxU7pviw&s" alt="Chef" className="absolute bottom-0 right-0 w-72 h-64 object-cover rounded-3xl shadow-xl" />
             <div className="absolute bottom-24 left-16 rounded-2xl p-5 text-white shadow-2xl bg-gradient-to-r from-red-700 to-red-600">
               <div className="text-3xl font-bold" style={{ fontFamily: "'Georgia', serif" }}>8 ans</div>
