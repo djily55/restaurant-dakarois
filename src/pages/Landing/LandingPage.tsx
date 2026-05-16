@@ -310,7 +310,10 @@ export default function LandingPage() {
 
       {/* ========== HERO SECTION ========== */}
       <section id="accueil" className="relative min-h-screen flex items-center overflow-hidden">
-        style={{ backgroundImage: "url('/images/63a47191df44b-restaurant senegal.jpg')" }}
+        <div 
+  style={{ backgroundImage: "url('/images/63a47191df44b-restaurant senegal.jpg')" }} 
+  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+/>
         <div className="absolute inset-0" style={{ background: "linear-gradient(105deg, rgba(255,250,245,0.97) 45%, rgba(255,250,245,0.5) 70%, rgba(255,250,245,0.1) 100%)" }} />
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full pt-24 pb-16">
           <div className="max-w-2xl">
