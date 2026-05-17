@@ -1,3 +1,4 @@
+// src/pages/Dashboard/Overview.tsx
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -10,7 +11,6 @@ import { db } from "../../firebase"
 
 type Periode = "jour" | "semaine" | "mois"
 
-// Types Firestore
 interface OrderItem {
   nom: string
   quantite: number
@@ -47,8 +47,8 @@ interface Reservation {
 }
 
 const formatValue = (value: number) => {
-  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
-  if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}k`
   return `${value}`
 }
 
@@ -60,7 +60,7 @@ const statusCfg: Record<string, { color: string; bg: string; icon: React.Element
   "Livré": { color: "#95A5A6", bg: "rgba(149,165,166,0.1)", icon: CheckCircle },
 }
 
-// Donut Chart (inchangé mais responsive)
+// Donut Chart (responsive)
 const DonutChart = ({ data }: { data: { labels: string[]; data: number[]; colors: string[] } }) => {
   const radius = 70
   const circumference = 2 * Math.PI * radius
@@ -161,6 +161,7 @@ const EvolutionChart = ({ orders, periode }: { orders: Order[]; periode: Periode
     return () => observer.disconnect()
   }, [])
 
+  // Fonction corrigée pour la semaine (gère correctement le dimanche)
   const getLabelsAndData = () => {
     if (periode === "jour") {
       const labels = ["8h", "10h", "12h", "14h", "16h", "18h", "20h", "22h"]
@@ -174,13 +175,22 @@ const EvolutionChart = ({ orders, periode }: { orders: Order[]; periode: Periode
       return { labels, data }
     }
     if (periode === "semaine") {
+      // Correction : début de semaine = lundi, même si aujourd'hui est dimanche
       const jours = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+      const startOfWeek = new Date(now)
+      const dayOfWeek = now.getDay() // 0 = dimanche, 1 = lundi ... 6 = samedi
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      startOfWeek.setDate(now.getDate() - daysToMonday)
+      startOfWeek.setHours(0, 0, 0, 0)
+
       const data = jours.map((_, i) => {
-        const target = new Date(now)
-        target.setDate(now.getDate() - now.getDay() + 1 + i)
+        const target = new Date(startOfWeek)
+        target.setDate(startOfWeek.getDate() + i)
         return orders.filter(o => {
           const d = new Date(o.createdAt)
-          return d.getDate() === target.getDate() && d.getMonth() === target.getMonth()
+          return d.getDate() === target.getDate() &&
+                 d.getMonth() === target.getMonth() &&
+                 d.getFullYear() === target.getFullYear()
         }).reduce((s, o) => s + o.total, 0)
       })
       return { labels: jours, data }
@@ -191,7 +201,7 @@ const EvolutionChart = ({ orders, periode }: { orders: Order[]; periode: Periode
       return orders.filter(o => {
         const d = new Date(o.createdAt)
         const weekOfMonth = Math.floor((d.getDate() - 1) / 7)
-        return d.getMonth() === now.getMonth() && weekOfMonth === i
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && weekOfMonth === i
       }).reduce((s, o) => s + o.total, 0)
     })
     return { labels, data }
@@ -243,7 +253,7 @@ const EvolutionChart = ({ orders, periode }: { orders: Order[]; periode: Periode
           <path d={linePath + ` L ${points[points.length-1].x} ${padding.top + graphHeight} L ${points[0].x} ${padding.top + graphHeight} Z`} fill="rgba(192,57,43,0.05)" />
           {points.map((point, idx) => (
             <g key={idx}>
-              <circle cx={point.x} cy={point.y} r={hovered === idx ? 5 : 3} fill="white" stroke="#C0392B" strokeWidth="1.5" 
+              <circle cx={point.x} cy={point.y} r={hovered === idx ? 5 : 3} fill="white" stroke="#C0392B" strokeWidth="1.5"
                 onMouseEnter={() => setHovered(idx)} onMouseLeave={() => setHovered(null)} />
               {hovered === idx && (
                 <>
@@ -336,16 +346,25 @@ export default function Overview() {
 
   const now = new Date()
 
+  // FILTRE PAR PÉRIODE (corrigé pour la semaine)
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
       const d = new Date(o.createdAt)
       if (periode === "jour") return d.toDateString() === now.toDateString()
       if (periode === "semaine") {
+        // début de la semaine (lundi)
         const startOfWeek = new Date(now)
-        startOfWeek.setDate(now.getDate() - now.getDay() + 1)
-        startOfWeek.setHours(0,0,0,0)
-        return d >= startOfWeek
+        const dayOfWeek = now.getDay() // 0 = dimanche, 1 = lundi ... 6 = samedi
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+        startOfWeek.setDate(now.getDate() - daysToMonday)
+        startOfWeek.setHours(0, 0, 0, 0)
+        // fin de semaine (dimanche)
+        const endOfWeek = new Date(startOfWeek)
+        endOfWeek.setDate(startOfWeek.getDate() + 6)
+        endOfWeek.setHours(23, 59, 59, 999)
+        return d >= startOfWeek && d <= endOfWeek
       }
+      // mois
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
     })
   }, [orders, periode, now])
@@ -463,7 +482,7 @@ export default function Overview() {
         </div>
       )}
 
-      {/* Stats Cards - grille responsive */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: "Chiffre d'affaires", value: `${ca.toLocaleString()}`, unit: "FCFA", icon: TrendingUp, color: "#C0392B", bg: "rgba(192,57,43,0.08)", sub: `${nbCommandes} commandes` },
@@ -499,7 +518,7 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Répartition + Statuts (2 colonnes sur desktop, 1 sur mobile) */}
+      {/* Répartition + Statuts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div className="rounded-2xl border overflow-hidden" style={{ background: "white", border: "1px solid #F0E8E0" }}>
           <div className="px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#F0E8E0" }}>
